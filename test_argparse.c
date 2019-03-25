@@ -19,6 +19,8 @@ main(int argc, const char **argv)
     int force = 0;
     int test = 0;
     int int_num = 0;
+    int uint_num = 0;
+    unsigned long int ulong_num = 0;
     float flt_num = 0.f;
     const char *path = NULL;
     int perms = 0;
@@ -29,6 +31,8 @@ main(int argc, const char **argv)
         OPT_BOOLEAN('t', "test", &test, "test only", NULL, 0, 0),
         OPT_STRING('p', "path", &path, "path to read", NULL, 0, 0),
         OPT_INTEGER('i', "int", &int_num, "selected integer", NULL, 0, 0),
+        OPT_UINT('u', "uint", &uint_num, "selected unsigned integer", NULL, 0, 0),
+        OPT_ULONG(NULL, "ulong", &ulong_num, "selected unsigned long integer", NULL, 0, 0),
         OPT_FLOAT('s', "float", &flt_num, "selected float", NULL, 0, 0),
         OPT_GROUP("Bits options"),
         OPT_BIT(0, "read", &perms, "read perm", NULL, PERM_READ, OPT_NONEG),
@@ -49,6 +53,10 @@ main(int argc, const char **argv)
         printf("path: %s\n", path);
     if (int_num != 0)
         printf("int_num: %d\n", int_num);
+    if (uint_num != 0)
+        printf("uint_num: %u\n", uint_num);
+    if (ulong_num != 0)
+        printf("ulong_num: %lu\n", ulong_num);
     if (flt_num != 0)
         printf("flt_num: %g\n", flt_num);
     if (argc != 0) {

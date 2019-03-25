@@ -34,7 +34,11 @@ enum argparse_option_type {
     ARGPARSE_OPT_BIT,
     /* options with arguments (optional or required) */
     ARGPARSE_OPT_INTEGER,
+    ARGPARSE_OPT_LONG_INT,
+    ARGPARSE_OPT_UNSIGNED_INT,
+    ARGPARSE_OPT_UNSIGNED_LONG_INT,
     ARGPARSE_OPT_FLOAT,
+    ARGPARSE_OPT_DOUBLE,
     ARGPARSE_OPT_STRING,
 };
 
@@ -109,7 +113,11 @@ int argparse_help_cb(struct argparse *self,
 #define OPT_BOOLEAN(...) { ARGPARSE_OPT_BOOLEAN, __VA_ARGS__ }
 #define OPT_BIT(...)     { ARGPARSE_OPT_BIT, __VA_ARGS__ }
 #define OPT_INTEGER(...) { ARGPARSE_OPT_INTEGER, __VA_ARGS__ }
+#define OPT_UINT(...) { ARGPARSE_OPT_UNSIGNED_INT, __VA_ARGS__ }
+#define OPT_LONGINT(...) { ARGPARSE_OPT_LONG_INT, __VA_ARGS__ }
+#define OPT_ULONG(...) { ARGPARSE_OPT_UNSIGNED_LONG_INT, __VA_ARGS__ }
 #define OPT_FLOAT(...)   { ARGPARSE_OPT_FLOAT, __VA_ARGS__ }
+#define OPT_DOUBLE(...)   { ARGPARSE_OPT_FLOAT, __VA_ARGS__ }
 #define OPT_STRING(...)  { ARGPARSE_OPT_STRING, __VA_ARGS__ }
 #define OPT_GROUP(h)     { ARGPARSE_OPT_GROUP, 0, NULL, NULL, h, NULL, 0, 0 }
 #define OPT_HELP()       OPT_BOOLEAN('h', "help", NULL,                 \

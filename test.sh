@@ -21,6 +21,16 @@ is "$(./test_argparse -ia 2>&1)" 'error: option `-i` expects an integer value'
 is "$(./test_argparse -i 0xFFFFFFFFFFFFFFFFF 2>&1)" \
    'error: option `-i` Numerical result out of range'
 
+is "$(./test_argparse -u 4294967295 2>&1)" 'uint_num: 4294967295'
+
+is "$(./test_argparse -u 4294967296 2>&1)" 'error: option `-u` Numerical result out of range'
+
+is "$(./test_argparse -u -1 2>&1)" 'error: option `-u` Numerical result out of range'
+
+is "$(./test_argparse --ulong 18446744073709551615 2>&1)" 'ulong_num: 18446744073709551615'
+
+is "$(./test_argparse --ulong -1 2>&1)" 'error: option `--ulong` Numerical result out of range'
+
 is "$(./test_argparse -s 2.4 2>&1)" 'flt_num: 2.4'
 
 is "$(./test_argparse -s2.4 2>&1)" 'flt_num: 2.4'
@@ -53,6 +63,8 @@ Basic options
     -t, --test            test only
     -p, --path=<str>      path to read
     -i, --int=<int>       selected integer
+    -u, --uint=<int>      selected unsigned integer
+    --ulong=<int>         selected unsigned long integer
     -s, --float=<flt>     selected float
 
 Bits options

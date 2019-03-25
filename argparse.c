@@ -10,6 +10,8 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
+#include <ctype.h>
 #include "argparse.h"
 
 #define OPT_UNSET 1
@@ -31,6 +33,50 @@ prefix_cmp(const char *str, const char *prefix)
         } else if (*str != *prefix) {
             return (unsigned char)*prefix - (unsigned char)*str;
         }
+}
+
+/* sign-checking variant of strtoul */
+static unsigned long int
+checked_strtoul(const char* str, char** endptr, int base)
+{
+    while (*str && isspace(*str))
+        str++;
+    if (*str == '-') {
+        errno = ERANGE;
+        return 0;
+    } else {
+        return strtoul(str, endptr, base);
+    }
+}
+
+/* sign-checking variant of strtol */
+static unsigned int
+checked_strtou(const char* str, char** endptr, int base)
+{
+    unsigned long int test = checked_strtoul(str, endptr, base);
+    if (errno) {
+        return 0;
+    } else if (test > UINT_MAX) {
+        errno = ERANGE;
+        return 0;
+    } else {
+        return (unsigned int)test;
+    }
+}
+
+/* range-checking variant of strtol */
+static int
+checked_strtoi(const char* str, char** endptr, int base)
+{
+    long int test = strtol(str, endptr, base);
+    if (errno) {
+        return 0;
+    } else if (test > INT_MAX || test < INT_MIN) {
+        errno = ERANGE;
+        return 0;
+    } else {
+        return (int)test;
+    }
 }
 
 static void
@@ -85,11 +131,11 @@ argparse_getvalue(struct argparse *self, const struct argparse_option *opt,
     case ARGPARSE_OPT_INTEGER:
         errno = 0;
         if (self->optvalue) {
-            *(int *)opt->value = strtol(self->optvalue, (char **)&s, 0);
+            *(int *)opt->value = checked_strtoi(self->optvalue, (char **)&s, 0);
             self->optvalue     = NULL;
         } else if (self->argc > 1) {
             self->argc--;
-            *(int *)opt->value = strtol(*++self->argv, (char **)&s, 0);
+            *(int *)opt->value = checked_strtoi(*++self->argv, (char **)&s, 0);
         } else {
             argparse_error(self, opt, "requires a value", flags);
         }
@@ -97,6 +143,53 @@ argparse_getvalue(struct argparse *self, const struct argparse_option *opt,
             argparse_error(self, opt, strerror(errno), flags);
         if (s[0] != '\0')
             argparse_error(self, opt, "expects an integer value", flags);
+        break;
+    case ARGPARSE_OPT_UNSIGNED_INT:
+        errno = 0;
+        if (self->optvalue) {
+            *(unsigned int *)opt->value = checked_strtou(self->optvalue, (char **)&s, 0);
+        } else if (self->argc > 1) {
+            self->argc--;
+            *(unsigned int *)opt->value = checked_strtou(*++self->argv, (char **)&s, 0);
+        } else {
+            argparse_error(self, opt, "requires a value", flags);
+        }
+        if (errno)
+            argparse_error(self, opt, strerror(errno), flags);
+        if (s[0] != '\0')
+            argparse_error(self, opt, "expects an unsigned integer value", flags);
+        break;
+    case ARGPARSE_OPT_LONG_INT:
+        errno = 0;
+        if (self->optvalue) {
+            *(long int *)opt->value = strtol(self->optvalue, (char **)&s, 0);
+            self->optvalue     = NULL;
+        } else if (self->argc > 1) {
+            self->argc--;
+            *(long int *)opt->value = strtol(*++self->argv, (char **)&s, 0);
+        } else {
+            argparse_error(self, opt, "requires a value", flags);
+        }
+        if (errno)
+            argparse_error(self, opt, strerror(errno), flags);
+        if (s[0] != '\0')
+            argparse_error(self, opt, "expects an integer value", flags);
+        break;
+    case ARGPARSE_OPT_UNSIGNED_LONG_INT:
+        errno = 0;
+        if (self->optvalue) {
+            *(unsigned long int *)opt->value = checked_strtoul(self->optvalue, (char **)&s, 0);
+            self->optvalue     = NULL;
+        } else if (self->argc > 1) {
+            self->argc--;
+            *(unsigned long int *)opt->value = checked_strtoul(*++self->argv, (char **)&s, 0);
+        } else {
+            argparse_error(self, opt, "requires a value", flags);
+        }
+        if (errno)
+            argparse_error(self, opt, strerror(errno), flags);
+        if (s[0] != '\0')
+            argparse_error(self, opt, "expects an unsigned long value", flags);
         break;
     case ARGPARSE_OPT_FLOAT:
         errno = 0;
@@ -106,6 +199,22 @@ argparse_getvalue(struct argparse *self, const struct argparse_option *opt,
         } else if (self->argc > 1) {
             self->argc--;
             *(float *)opt->value = strtof(*++self->argv, (char **)&s);
+        } else {
+            argparse_error(self, opt, "requires a value", flags);
+        }
+        if (errno)
+            argparse_error(self, opt, strerror(errno), flags);
+        if (s[0] != '\0')
+            argparse_error(self, opt, "expects a numerical value", flags);
+        break;
+    case ARGPARSE_OPT_DOUBLE:
+        errno = 0;
+        if (self->optvalue) {
+            *(double *)opt->value = strtod(self->optvalue, (char **)&s);
+            self->optvalue       = NULL;
+        } else if (self->argc > 1) {
+            self->argc--;
+            *(float *)opt->value = strtod(*++self->argv, (char **)&s);
         } else {
             argparse_error(self, opt, "requires a value", flags);
         }
@@ -135,7 +244,11 @@ argparse_options_check(const struct argparse_option *options)
         case ARGPARSE_OPT_BOOLEAN:
         case ARGPARSE_OPT_BIT:
         case ARGPARSE_OPT_INTEGER:
+        case ARGPARSE_OPT_LONG_INT:
+        case ARGPARSE_OPT_UNSIGNED_INT:
+        case ARGPARSE_OPT_UNSIGNED_LONG_INT:
         case ARGPARSE_OPT_FLOAT:
+        case ARGPARSE_OPT_DOUBLE:
         case ARGPARSE_OPT_STRING:
         case ARGPARSE_OPT_GROUP:
             continue;
@@ -150,7 +263,7 @@ static int
 argparse_short_opt(struct argparse *self, const struct argparse_option *options)
 {
     for (; options->type != ARGPARSE_OPT_END; options++) {
-        if (options->short_name == *self->optvalue) {
+        if (options->short_name && options->short_name == *self->optvalue) {
             self->optvalue = self->optvalue[1] ? self->optvalue + 1 : NULL;
             return argparse_getvalue(self, options, 0);
         }
@@ -319,10 +432,12 @@ argparse_usage(struct argparse *self)
         if ((options)->long_name) {
             len += strlen((options)->long_name) + 2;
         }
-        if (options->type == ARGPARSE_OPT_INTEGER) {
+        if (options->type == ARGPARSE_OPT_INTEGER ||
+            options->type == ARGPARSE_OPT_UNSIGNED_INT ||
+            options->type == ARGPARSE_OPT_LONG_INT ||
+            options->type == ARGPARSE_OPT_UNSIGNED_LONG_INT) {
             len += strlen("=<int>");
-        }
-        if (options->type == ARGPARSE_OPT_FLOAT) {
+        } else if (options->type == ARGPARSE_OPT_FLOAT || options->type == ARGPARSE_OPT_DOUBLE) {
             len += strlen("=<flt>");
         } else if (options->type == ARGPARSE_OPT_STRING) {
             len += strlen("=<str>");
@@ -354,9 +469,12 @@ argparse_usage(struct argparse *self)
         if (options->long_name) {
             pos += fprintf(stdout, "--%s", options->long_name);
         }
-        if (options->type == ARGPARSE_OPT_INTEGER) {
+        if (options->type == ARGPARSE_OPT_INTEGER ||
+            options->type == ARGPARSE_OPT_UNSIGNED_INT ||
+            options->type == ARGPARSE_OPT_LONG_INT ||
+            options->type == ARGPARSE_OPT_UNSIGNED_LONG_INT) {
             pos += fprintf(stdout, "=<int>");
-        } else if (options->type == ARGPARSE_OPT_FLOAT) {
+        } else if (options->type == ARGPARSE_OPT_FLOAT || options->type == ARGPARSE_OPT_DOUBLE) {
             pos += fprintf(stdout, "=<flt>");
         } else if (options->type == ARGPARSE_OPT_STRING) {
             pos += fprintf(stdout, "=<str>");
